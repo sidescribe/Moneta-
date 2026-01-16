@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Removed output: 'export' to keep client-side JavaScript
+  output: 'export',
+  trailingSlash: true,
+  basePath: '/Moneta-',
+  assetPrefix: '/Moneta-',
+  images: {
+    unoptimized: true,
+  },
   // Your existing config options here
 };
 
