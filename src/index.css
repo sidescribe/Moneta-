@@ -1,0 +1,289 @@
+@reference "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== ADVANCED CSS ENHANCEMENTS ===== */
+
+/* Base Styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+  body {
+    @apply bg-neutral-50 text-neutral-900;
+  }
+}
+
+/* Component Styles */
+@layer components {
+  /* Enhanced Buttons */
+  .btn-primary {
+    @apply bg-blue-500 hover:bg-blue-600;
+    @apply text-white font-medium px-6 py-3 rounded-xl;
+    @apply shadow-lg hover:shadow-xl;
+    @apply transform hover:scale-105 active:scale-95;
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .btn-secondary {
+    @apply bg-emerald-500 hover:bg-emerald-600;
+    @apply text-white font-medium px-6 py-3 rounded-xl;
+    @apply shadow-lg hover:shadow-xl;
+    @apply transform hover:scale-105 active:scale-95;
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .btn-ghost {
+    @apply bg-white/80 backdrop-blur-sm border border-neutral-200;
+    @apply hover:bg-white hover:shadow-lg;
+    @apply text-neutral-700 hover:text-neutral-900;
+    @apply px-4 py-2 rounded-lg;
+    @apply transform hover:scale-105 active:scale-95;
+    @apply transition-all duration-200 ease-out;
+  }
+
+  /* Enhanced Cards */
+  .card {
+    @apply bg-white rounded-2xl border border-neutral-200;
+    @apply shadow-md hover:shadow-lg;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover {
+    @apply transform hover:scale-[1.02] hover:-translate-y-1;
+    @apply hover:shadow-xl;
+  }
+
+  .card-metric {
+    @apply bg-gradient-to-br from-white to-neutral-50;
+    @apply border border-neutral-200/50;
+    @apply shadow-md hover:shadow-lg;
+    @apply transform hover:scale-[1.01] hover:-translate-y-0.5;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-interactive {
+    @apply cursor-pointer;
+    @apply transform hover:scale-[1.02] hover:-translate-y-1;
+    @apply hover:shadow-xl;
+    @apply transition-all duration-200 ease-out;
+  }
+
+  /* Gradient Backgrounds */
+  .gradient-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+  }
+
+  .gradient-metric-blue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .gradient-metric-green {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+  }
+
+  .gradient-metric-amber {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  }
+
+  .gradient-metric-red {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+  }
+
+  /* Text Effects */
+  .text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-shadow-soft {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Loading States */
+  .skeleton {
+    @apply bg-neutral-200 animate-pulse;
+  }
+
+  .skeleton-text {
+    @apply h-4 rounded bg-neutral-200 animate-pulse;
+  }
+
+  .skeleton-card {
+    @apply p-6 rounded-2xl bg-neutral-200 animate-pulse;
+  }
+
+  /* Status Indicators */
+  .status-indicator {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .status-positive {
+    @apply bg-green-100 text-green-800 border border-green-200;
+  }
+
+  .status-negative {
+    @apply bg-red-100 text-red-800 border border-red-200;
+  }
+
+  .status-neutral {
+    @apply bg-neutral-100 text-neutral-800 border border-neutral-200;
+  }
+
+  .status-warning {
+    @apply bg-amber-100 text-amber-800 border border-amber-200;
+  }
+
+  /* Progress Bars */
+  .progress-bar {
+    @apply w-full bg-neutral-200 rounded-full h-2;
+  }
+
+  .progress-fill {
+    @apply bg-blue-500 h-2 rounded-full;
+    @apply transition-all duration-500 ease-out;
+  }
+
+  .progress-fill-success {
+    @apply bg-emerald-500;
+  }
+
+  .progress-fill-warning {
+    @apply bg-amber-500;
+  }
+
+  .progress-fill-error {
+    @apply bg-red-500;
+  }
+
+  /* Animations - using standard Tailwind classes */
+
+  /* Hover Effects */
+  .hover-lift {
+    @apply transform hover:scale-105 hover:-translate-y-1;
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .hover-glow {
+    @apply hover:shadow-lg;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .hover-glow-green {
+    @apply hover:shadow-lg;
+  }
+
+  /* Focus States */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+
+  .focus-ring-inset {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset;
+  }
+
+  /* Mobile Optimizations */
+  @media (max-width: 640px) {
+    .mobile-stack {
+      @apply flex-col;
+    }
+
+    .mobile-full {
+      @apply w-full;
+    }
+
+    .mobile-center {
+      @apply text-center;
+    }
+
+    .mobile-hide {
+      @apply hidden;
+    }
+  }
+}
+
+/* ===== PWA & MOBILE SPECIFIC ===== */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100%;
+}
+
+/* Hide scrollbar in standalone mode */
+@media all and (display-mode: standalone) {
+  body {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Touch optimizations */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe areas for modern mobile devices */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-neutral-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-neutral-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-neutral-400;
+}
