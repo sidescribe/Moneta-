@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Download } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -11,12 +11,22 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+type NavigatorStandalone = Navigator & { standalone?: boolean };
+
+function isIosInstalledPwa(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = window.navigator as NavigatorStandalone;
+  return 'standalone' in nav && Boolean(nav.standalone);
+}
+
 export default function PWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  const skipInstallUi = useRef(isIosInstalledPwa());
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
+      if (skipInstallUi.current) return;
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
@@ -29,11 +39,6 @@ export default function PWAInstall() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
-
-    // Check if already installed
-    if ('standalone' in window.navigator && (window.navigator as any).standalone) {
-      setIsInstallable(false);
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

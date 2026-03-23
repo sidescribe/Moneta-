@@ -26,9 +26,11 @@ export const RecurringCreate: React.FC<Props> = ({ businessId, accounts, categor
   const [active, setActive] = useState(existing?.active ?? true);
 
   useEffect(() => {
-    if (!accountId && accounts[0]) setAccountId(accounts[0].id);
-    if (!categoryId && categories[0]) setCategoryId(categories[0].id);
-  }, [accounts, categories]);
+    queueMicrotask(() => {
+      if (!accountId && accounts[0]) setAccountId(accounts[0].id);
+      if (!categoryId && categories[0]) setCategoryId(categories[0].id);
+    });
+  }, [accounts, categories, accountId, categoryId]);
 
   const save = async () => {
     if (!businessId) return alert('Select a business first');
@@ -82,7 +84,11 @@ export const RecurringCreate: React.FC<Props> = ({ businessId, accounts, categor
         </div>
         <div>
           <label className="block text-sm text-neutral-600 mb-1">Frequency</label>
-          <select className="w-full px-3 py-2 border rounded" value={frequency} onChange={e => setFrequency(e.target.value as any)}>
+          <select
+            className="w-full px-3 py-2 border rounded"
+            value={frequency}
+            onChange={e => setFrequency(e.target.value as Recurring['frequency'])}
+          >
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>

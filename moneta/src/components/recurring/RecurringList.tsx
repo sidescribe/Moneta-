@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { Recurring, Account, Category } from '../../types/index';
 import { createPersistence } from '../../lib/persistence';
 import RecurringCreate from './RecurringCreate';
@@ -17,17 +17,24 @@ export const RecurringList: React.FC<Props> = ({ businessId, accounts, categorie
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Recurring | null>(null);
 
-  const load = async () => {
-    if (!businessId) return setItems([]);
+  const load = useCallback(async () => {
+    if (!businessId) {
+      setItems([]);
+      return;
+    }
     const list = await persistence.getRecurrings(businessId);
     setItems(list || []);
-  };
-
-  useEffect(() => { load(); }, [businessId]);
+  }, [businessId]);
 
   useEffect(() => {
-    const handler = (e: any) => {
-      const id = e?.detail?.recurringId;
+    queueMicrotask(() => {
+      void load();
+    });
+  }, [businessId, load]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<{ recurringId?: string }>).detail?.recurringId;
       if (!id) return;
       // ensure list is loaded
       (async () => {
@@ -41,8 +48,8 @@ export const RecurringList: React.FC<Props> = ({ businessId, accounts, categorie
         }
       })();
     };
-    window.addEventListener('moneta:openRecurring', handler as EventListener);
-    return () => window.removeEventListener('moneta:openRecurring', handler as EventListener);
+    window.addEventListener('moneta:openRecurring', handler);
+    return () => window.removeEventListener('moneta:openRecurring', handler);
   }, [businessId]);
 
   const remove = async (id: string) => {

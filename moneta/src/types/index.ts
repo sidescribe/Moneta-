@@ -76,6 +76,8 @@ export interface Business {
   settings?: {
     defaultAccountId?: string;
     startingBalance?: number;
+    /** GitHub Gist id when cloud sync is enabled */
+    gistId?: string;
   };
 }
 

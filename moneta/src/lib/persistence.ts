@@ -193,7 +193,11 @@ export class GitHubGistAdapter implements PersistenceAdapter {
     const b = businesses.find(x => x.id === businessId);
     if (!b) throw new Error('Business not found locally');
 
-    const gistPayload = {
+    const gistPayload: {
+      files: Record<string, { content: string }>;
+      description: string;
+      public: boolean;
+    } = {
       files: {
         ['moneta-dataset.json']: {
           content: JSON.stringify(data, null, 2),
@@ -201,29 +205,28 @@ export class GitHubGistAdapter implements PersistenceAdapter {
       },
       description: `Moneta dataset for ${b.name}`,
       public: false,
-    } as any;
+    };
 
     try {
-      if (b.settings && (b.settings as any).gistId) {
-        // update existing gist
-        const gistId = (b.settings as any).gistId as string;
-        await fetch(`https://api.github.com/gists/${gistId}`, {
+      const existingGistId = b.settings?.gistId;
+      if (existingGistId) {
+        await fetch(`https://api.github.com/gists/${existingGistId}`, {
           method: 'PATCH',
           headers: this.authHeaders(),
           body: JSON.stringify({ files: gistPayload.files }),
         });
       } else {
-        // create new gist
         const res = await fetch('https://api.github.com/gists', {
           method: 'POST',
           headers: this.authHeaders(),
           body: JSON.stringify(gistPayload),
         });
         if (!res.ok) throw new Error('Failed to create gist');
-        const json = await res.json();
-        (b.settings as any) = (b.settings || {});
-        (b.settings as any).gistId = json.id;
-        await local.updateBusiness(b);
+        const json = (await res.json()) as { id: string };
+        await local.updateBusiness({
+          ...b,
+          settings: { ...b.settings, gistId: json.id },
+        });
       }
       // also save locally as fallback
       await local.saveDataset(businessId, data);
@@ -238,7 +241,7 @@ export class GitHubGistAdapter implements PersistenceAdapter {
     const businesses = await local.getBusinesses();
     const b = businesses.find(x => x.id === businessId);
     if (!b) return null;
-    const gistId = (b.settings && (b.settings as any).gistId) as string | undefined;
+    const gistId = b.settings?.gistId;
     if (!gistId) return local.loadDataset(businessId);
 
     try {

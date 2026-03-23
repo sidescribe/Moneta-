@@ -7,7 +7,7 @@ import PWAInstall from './PWAInstall';
 import { Button } from './components/ui/Button';
 import BusinessSwitcher from './components/business/BusinessSwitcher';
 import { createPersistence } from './lib/persistence';
-import type { Transaction, Account, Category, CategoryRule, SaaSMetrics, BusinessMetrics, DashboardProps, TransactionsProps, ReportsProps, TransactionModalProps, MonthlyStatement, AnnualStatement, JournalEntry } from './types';
+import type { Transaction, Account, Category, CategoryRule, SaaSMetrics, BusinessMetrics, Business, DashboardProps, TransactionsProps, ReportsProps, TransactionModalProps, MonthlyStatement, AnnualStatement, JournalEntry, Recurring } from './types';
 import {
   filterJournalByBusiness,
   journalFromTransaction,
@@ -119,19 +119,20 @@ function App() {
   });
 
   useEffect(() => {
-    const handler = (e: any) => {
-      const id = e?.detail?.businessId ?? window.localStorage.getItem('moneta:activeBusinessId');
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent<{ businessId?: string | null }>).detail;
+      const id = d?.businessId ?? window.localStorage.getItem('moneta:activeBusinessId');
       setActiveBusinessId(id);
     };
-    window.addEventListener('moneta:businessSwitched', handler as EventListener);
-    const openRecurring = (e: any) => {
-      const id = e?.detail?.recurringId;
+    window.addEventListener('moneta:businessSwitched', handler);
+    const openRecurring = (e: Event) => {
+      const id = (e as CustomEvent<{ recurringId?: string }>).detail?.recurringId;
       if (id) setView('recurring');
     };
-    window.addEventListener('moneta:openRecurring', openRecurring as EventListener);
+    window.addEventListener('moneta:openRecurring', openRecurring);
     return () => {
-      window.removeEventListener('moneta:businessSwitched', handler as EventListener);
-      window.removeEventListener('moneta:openRecurring', openRecurring as EventListener);
+      window.removeEventListener('moneta:businessSwitched', handler);
+      window.removeEventListener('moneta:openRecurring', openRecurring);
     };
   }, []);
 
@@ -150,6 +151,7 @@ function App() {
     setAccounts(nextAcc);
     setJournalEntries(nextJe);
     if (nextSchemaVersion !== sv) setSchemaVersion(nextSchemaVersion);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time migration from initial snapshot
   }, []);
 
   // Persistence instance (local by default)
@@ -163,7 +165,7 @@ function App() {
       const now = Date.now();
       const generated: Transaction[] = [];
 
-      const addInterval = (ts: number, r: any) => {
+      const addInterval = (ts: number, r: Recurring) => {
         const d = new Date(ts);
         switch (r.frequency) {
           case 'daily': d.setDate(d.getDate() + (r.intervalDays || 1)); break;
@@ -239,6 +241,7 @@ function App() {
   // Run scheduler when active business changes or on mount
   useEffect(() => {
     runDueRecurringsForBusiness(activeBusinessId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runDueRecurringsForBusiness intentionally omitted from deps
   }, [activeBusinessId]);
 
   const matchesActiveBusiness = (t: Transaction) => {
@@ -641,7 +644,7 @@ function App() {
     });
   };
 
-  const addTransaction = (transaction: any) => {
+  const addTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string }) => {
     const id = transaction.id ?? Date.now().toString();
     const tx: Transaction = {
       ...transaction,
@@ -653,11 +656,14 @@ function App() {
     setShowAddTransaction(false);
   };
 
-  const updateTransaction = (updatedTransaction: any) => {
-    const tx = {
+  const updateTransaction = (updatedTransaction: Omit<Transaction, 'id'> & { id?: string }) => {
+    const id = updatedTransaction.id;
+    if (!id) return;
+    const tx: Transaction = {
       ...updatedTransaction,
+      id,
       kind: updatedTransaction.kind ?? 'income_expense',
-    } as Transaction;
+    };
     setTransactions(prev => prev.map(t => (t.id === tx.id ? tx : t)));
     setJournalEntries(prev => replaceJournalForTransaction(prev, tx, accounts, categories));
     setEditingTransaction(null);
@@ -703,6 +709,7 @@ function App() {
   // Auto-archive completed months on component mount
   useEffect(() => {
     checkForArchivableMonths();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only
   }, []);
 
   const metrics = getBusinessMetrics();
@@ -715,7 +722,11 @@ function App() {
   });
 
   useEffect(() => {
-    try { window.localStorage.setItem('moneta:darkMode', darkMode ? 'true' : 'false'); } catch {}
+    try {
+      window.localStorage.setItem('moneta:darkMode', darkMode ? 'true' : 'false');
+    } catch {
+      /* localStorage may be disabled */
+    }
   }, [darkMode]);
 
   useEffect(() => {
@@ -2261,7 +2272,9 @@ function TransactionModal({
   transaction,
 }: TransactionModalProps) {
   const isEditing = !!transaction;
-  const draftTxId = useRef(transaction?.id ?? `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`).current;
+  const [draftTxId] = useState(
+    () => transaction?.id ?? `draft_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+  );
   const activeBusinessId = typeof window !== 'undefined' ? window.localStorage.getItem('moneta:activeBusinessId') : null;
   const businessAccounts = accounts.filter(a => a.category === 'business');
   const defaultAccountId = transaction?.accountId || (activeBusinessId && businessAccounts[0]?.id) || accounts[0]?.id || '';
@@ -2285,7 +2298,7 @@ function TransactionModal({
     try {
       const raw = window.localStorage.getItem('moneta:businesses');
       if (!raw) return null;
-      const list = JSON.parse(raw) as any[];
+      const list = JSON.parse(raw) as Business[];
       return list.find(b => b.id === activeBusinessId) || null;
     } catch {
       return null;
