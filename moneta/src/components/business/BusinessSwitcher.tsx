@@ -65,7 +65,7 @@ export const BusinessSwitcher: React.FC = () => {
       </div>
 
       {creating && (
-        <div className="mt-2 p-3 bg-white border rounded-md shadow-sm w-64">
+        <div className="mt-2 p-3 bg-white border rounded-md shadow-sm w-full max-w-sm">
           <label className="block text-xs text-neutral-600 mb-1">Business name</label>
           <input
             className="w-full px-3 py-2 border rounded-md text-sm"
@@ -73,9 +73,9 @@ export const BusinessSwitcher: React.FC = () => {
             onChange={e => setName(e.target.value)}
             placeholder="My Acme LLC"
           />
-          <div className="mt-3 flex justify-end">
-            <Button variant="secondary" size="sm" onClick={() => setCreating(false)} className="mr-2">Cancel</Button>
-            <Button variant="primary" size="sm" onClick={createBusiness}>Create</Button>
+          <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" size="sm" onClick={() => setCreating(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button variant="primary" size="sm" onClick={createBusiness} className="w-full sm:w-auto">Create</Button>
           </div>
         </div>
       )}

@@ -898,7 +898,7 @@ function App() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 md:pb-8 safe-bottom">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-24 md:pb-8 safe-bottom">
         {view === 'dashboard' && (
           <Dashboard
             personalAccounts={personalAccounts}
@@ -1013,30 +1013,30 @@ function App() {
               <div className="space-y-6">
                 {getAnnualStatements().map(annual => (
                   <div key={annual.year} className="space-y-4">
-                    <div className="bg-neutral-100 border border-neutral-300 rounded-xl p-6">
+                    <div className="bg-neutral-100 border border-neutral-300 rounded-xl p-4 sm:p-6">
                       <h3 className="text-xl font-bold text-neutral-900 mb-4">{annual.year} Annual Summary</h3>
-                      <div className="grid grid-cols-4 gap-6">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 sm:gap-4 lg:gap-6">
                         <div className="bg-white rounded-lg p-4 shadow-soft">
                           <p className="text-neutral-600 text-sm">Total Income</p>
-                          <p className="text-2xl font-bold text-green-600">
+                          <p className="text-xl sm:text-2xl font-bold text-green-600 break-words">
                             ${annual.annualSummary.totalIncome.toFixed(2)}
                           </p>
                         </div>
                         <div className="bg-white rounded-lg p-4 shadow-soft">
                           <p className="text-neutral-600 text-sm">Total Expenses</p>
-                          <p className="text-2xl font-bold text-red-600">
+                          <p className="text-xl sm:text-2xl font-bold text-red-600 break-words">
                             -${annual.annualSummary.totalExpenses.toFixed(2)}
                           </p>
                         </div>
                         <div className="bg-white rounded-lg p-4 shadow-soft">
                           <p className="text-neutral-600 text-sm">Net Amount</p>
-                          <p className={`text-2xl font-bold ${annual.annualSummary.netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <p className={`text-xl sm:text-2xl font-bold break-words ${annual.annualSummary.netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             ${annual.annualSummary.netAmount.toFixed(2)}
                           </p>
                         </div>
                         <div className="bg-white rounded-lg p-4 shadow-soft">
                           <p className="text-neutral-600 text-sm">Transactions</p>
-                          <p className="text-2xl font-bold text-neutral-900">
+                          <p className="text-xl sm:text-2xl font-bold text-neutral-900">
                             {annual.annualSummary.totalTransactions}
                           </p>
                         </div>
@@ -1046,12 +1046,12 @@ function App() {
                     <div className="grid gap-4">
                       {annual.monthlyStatements.map(statement => (
                         <div key={statement.id} className="bg-white border border-neutral-200 rounded-xl shadow-soft overflow-hidden">
-                          <div className="p-6 border-b border-neutral-200">
-                            <div className="flex justify-between items-center">
+                          <div className="p-4 sm:p-6 border-b border-neutral-200">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <h4 className="text-lg font-semibold text-neutral-900">
                                 {statement.monthName} {statement.year}
                               </h4>
-                              <div className="flex gap-4 text-sm">
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
                                 <span className="text-green-600 font-medium">
                                   +${statement.summary.totalIncome.toFixed(2)}
                                 </span>
@@ -1064,7 +1064,7 @@ function App() {
                                 <span className="text-neutral-500">
                                   {statement.summary.transactionCount} transactions
                                 </span>
-                                <button onClick={() => unarchiveMonth(statement.id)} className="text-sm text-primary-600 hover:text-primary-700 ml-2">
+                                <button onClick={() => unarchiveMonth(statement.id)} className="text-sm text-primary-600 hover:text-primary-700 sm:ml-2">
                                   Unarchive
                                 </button>
                               </div>
@@ -1077,17 +1077,17 @@ function App() {
                               const category = categories.find(c => c.id === tx.categoryId);
                               return (
                                 <div key={tx.id} className="p-4 hover:bg-neutral-50 transition-colors">
-                                  <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-3">
+                                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex items-start gap-3 min-w-0">
                                       <div className={`w-2 h-2 rounded-full ${tx.amount >= 0 ? 'bg-green-400' : 'bg-red-400'}`} />
-                                      <div>
-                                        <p className="font-medium text-neutral-900">{tx.description}</p>
-                                        <p className="text-sm text-neutral-500">
+                                      <div className="min-w-0">
+                                        <p className="font-medium text-neutral-900 break-words">{tx.description}</p>
+                                        <p className="text-sm text-neutral-500 break-words">
                                           {category?.name} • {account?.name} • {new Date(tx.date).toLocaleDateString()}
                                         </p>
                                       </div>
                                     </div>
-                                    <p className={`font-bold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    <p className={`font-bold self-start sm:self-auto ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                       {tx.amount >= 0 ? '+' : '-'}${Math.abs(tx.amount).toFixed(2)}
                                     </p>
                                   </div>
@@ -1207,12 +1207,12 @@ function Dashboard({ personalAccounts, businessAccounts, getAccountBalance, saas
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Enhanced Hero Section */}
-      <div className="gradient-hero rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden">
+      <div className="gradient-hero rounded-2xl p-5 sm:p-8 text-white shadow-2xl relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative flex items-center justify-between">
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="animate-slide-up">
-            <h1 className="text-4xl font-bold mb-2 text-shadow-soft font-display">Welcome to Moneta</h1>
-            <p className="text-white/90 text-lg">Your professional SaaS accounting dashboard</p>
+            <h1 className="text-2xl sm:text-4xl font-bold mb-2 text-shadow-soft font-display">Welcome to Moneta</h1>
+            <p className="text-white/90 text-sm sm:text-lg">Your professional SaaS accounting dashboard</p>
           </div>
           <div className="hidden md:block animate-bounce-in">
             <TrendingUp className="w-20 h-20 text-white/30" />
@@ -2028,8 +2028,8 @@ function ImportBackupModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-large">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-[60]">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-large max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
             <Upload className="w-5 h-5" />
@@ -2053,7 +2053,7 @@ function ImportBackupModal({
             Replace everything (from backup)
           </label>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col-reverse sm:flex-row gap-2">
           <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
             Cancel
           </Button>
@@ -2109,8 +2109,8 @@ function TransferModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-large">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-large max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
             <ArrowLeftRight className="w-5 h-5" />
@@ -2182,7 +2182,7 @@ function TransferModal({
             />
           </div>
         </div>
-        <div className="flex gap-2 mt-6">
+        <div className="flex flex-col-reverse sm:flex-row gap-2 mt-6">
           <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
             Cancel
           </Button>
@@ -2218,8 +2218,8 @@ function OpeningBalanceModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-large">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-large max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-neutral-900">Opening balance</h2>
           <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-neutral-100" aria-label="Close">
@@ -2250,7 +2250,7 @@ function OpeningBalanceModal({
             <input type="date" value={asOf} onChange={e => setAsOf(e.target.value)} className="w-full px-3 py-2 border border-neutral-300 rounded-lg" />
           </div>
         </div>
-        <div className="flex gap-2 mt-6">
+        <div className="flex flex-col-reverse sm:flex-row gap-2 mt-6">
           <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
             Cancel
           </Button>
@@ -2395,8 +2395,8 @@ function TransactionModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-neutral-950 rounded-2xl max-w-md w-full p-6 max-h-[90dvh] overflow-y-auto shadow-large border border-neutral-200 dark:border-neutral-800">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+      <div className="bg-white dark:bg-neutral-950 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 max-h-[94dvh] overflow-y-auto shadow-large border border-neutral-200 dark:border-neutral-800">
         {activeBusiness && (
           <div className="mb-4 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-md text-sm text-neutral-700 dark:text-neutral-300">
             Active business: <strong>{activeBusiness.name}</strong>
@@ -2640,7 +2640,7 @@ function TransactionModal({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
             <Button
               type="button"
               variant="outline"
