@@ -1,12 +1,21 @@
 'use client';
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
-import { Plus, Download, DollarSign, X, Edit, Trash2, TrendingUp, Flame, Shield, Wallet, Building, CreditCard, Building2, BarChart3, Receipt, PieChart, Calendar, ArrowUp, ArrowDown, AlertTriangle, TrendingDown, Sun, Moon, ArrowLeftRight, BookOpen, Upload, Wand2, Paperclip, Menu } from 'lucide-react';
+import { Plus, Download, DollarSign, X, Edit, Trash2, TrendingUp, Flame, Shield, Wallet, Building, CreditCard, Building2, BarChart3, Receipt, PieChart, Calendar, ArrowUp, ArrowDown, AlertTriangle, TrendingDown, Sun, Moon, ArrowLeftRight, BookOpen, Upload, Wand2, Paperclip, Menu, FileSpreadsheet, Scale, FileText, History, ClipboardCheck } from 'lucide-react';
 import RecurringList from './components/recurring/RecurringList';
 import RulesList from './components/rules/RulesList';
 import PWAInstall from './PWAInstall';
 import { Button } from './components/ui/Button';
 import BusinessSwitcher from './components/business/BusinessSwitcher';
+import SearchBar from './components/SearchBar';
+import CsvImportModal from './components/modals/CsvImportModal';
+import ProfitLossReport from './components/reports/ProfitLossReport';
+import TaxSummaryReport from './components/reports/TaxSummaryReport';
+import ReconciliationView from './components/reports/ReconciliationView';
+import MonthlyBarChart from './components/charts/MonthlyBarChart';
 import { createPersistence } from './lib/persistence';
+import { pushAuditEntry, getAuditLog, type AuditEntry } from './lib/auditLog';
+import { migrateLocalStorageToIdb } from './lib/idbStorage';
+import { pickBackupFile, writeToFileHandle, supportsFileSystemAccess, type FsFileHandle } from './lib/fileBackup';
 import type { Transaction, Account, Category, CategoryRule, SaaSMetrics, BusinessMetrics, Business, DashboardProps, TransactionsProps, ReportsProps, TransactionModalProps, MonthlyStatement, AnnualStatement, JournalEntry, Recurring } from './types';
 import {
   filterJournalByBusiness,
@@ -99,12 +108,15 @@ function App() {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showCsvImportModal, setShowCsvImportModal] = useState(false);
   const [openingBalanceAccount, setOpeningBalanceAccount] = useState<Account | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [txModalNonce, setTxModalNonce] = useState(0);
   const [mobileHeaderMenuOpen, setMobileHeaderMenuOpen] = useState(false);
   const [view, setView] = useState('dashboard');
   const [filterType, setFilterType] = useState('all');
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [auditLogEntries, setAuditLogEntries] = useState<AuditEntry[]>([]);
 
   // New state for monthly/annual statements
   const [monthlyStatements, setMonthlyStatements] = useLocalStorage('monthlyStatements', []) as [MonthlyStatement[], (value: MonthlyStatement[] | ((prev: MonthlyStatement[]) => MonthlyStatement[])) => void];
@@ -153,6 +165,35 @@ function App() {
     if (nextSchemaVersion !== sv) setSchemaVersion(nextSchemaVersion);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time migration from initial snapshot
   }, []);
+
+  // Migrate localStorage data to IndexedDB on first load
+  const idbMigrated = useRef(false);
+  useEffect(() => {
+    if (idbMigrated.current) return;
+    idbMigrated.current = true;
+    const keys = ['accounts', 'transactions', 'categories', 'moneta:categoryRules', 'journalEntries', 'monthlyStatements', 'moneta:schemaVersion'];
+    void migrateLocalStorageToIdb(keys);
+  }, []);
+
+  // File System Access API backup handle
+  const backupHandleRef = useRef<FsFileHandle | null>(null);
+
+  const handleSaveToFile = async () => {
+    let handle = backupHandleRef.current;
+    if (!handle) {
+      handle = await pickBackupFile();
+      if (!handle) return;
+      backupHandleRef.current = handle;
+    }
+    const data = {
+      metadata: { exportDate: new Date().toISOString(), version: '1.2', appName: 'Moneta' },
+      accounts, categories, categoryRules, journalEntries, transactions, monthlyStatements,
+    };
+    const ok = await writeToFileHandle(handle, data);
+    if (ok) {
+      pushAuditEntry({ action: 'import_data', description: 'Auto-saved backup to file' });
+    }
+  };
 
   // Persistence instance (local by default)
   const persistence = createPersistence();
@@ -653,12 +694,14 @@ function App() {
       kind: transaction.kind ?? 'income_expense',
     };
     recordNewTransaction(tx);
+    pushAuditEntry({ action: 'add_transaction', description: `Added "${tx.description}" ($${Math.abs(tx.amount).toFixed(2)})`, undoPayload: tx });
     setShowAddTransaction(false);
   };
 
   const updateTransaction = (updatedTransaction: Omit<Transaction, 'id'> & { id?: string }) => {
     const id = updatedTransaction.id;
     if (!id) return;
+    const oldTx = transactions.find(t => t.id === id);
     const tx: Transaction = {
       ...updatedTransaction,
       id,
@@ -666,6 +709,7 @@ function App() {
     };
     setTransactions(prev => prev.map(t => (t.id === tx.id ? tx : t)));
     setJournalEntries(prev => replaceJournalForTransaction(prev, tx, accounts, categories));
+    pushAuditEntry({ action: 'update_transaction', description: `Updated "${tx.description}"`, undoPayload: oldTx });
     setEditingTransaction(null);
     setShowAddTransaction(false);
   };
@@ -687,7 +731,22 @@ function App() {
       void deleteAttachmentsForTransaction(transactionId);
       setTransactions(transactions.filter(t => t.id !== transactionId));
       setJournalEntries(prev => removeJournalForTransaction(prev, transactionId));
+      pushAuditEntry({ action: 'delete_transaction', description: `Deleted "${transaction.description}" ($${Math.abs(transaction.amount).toFixed(2)})`, undoPayload: transaction });
     }
+  };
+
+  const handleCsvImport = (importedTxs: Transaction[]) => {
+    for (const tx of importedTxs) {
+      recordNewTransaction(tx);
+    }
+    pushAuditEntry({ action: 'csv_import', description: `Imported ${importedTxs.length} transactions from CSV` });
+    setShowCsvImportModal(false);
+  };
+
+  const handleMarkReconciled = (txIds: string[]) => {
+    setTransactions(prev => prev.map(t => txIds.includes(t.id) ? { ...t, reconciled: true } : t));
+    pushAuditEntry({ action: 'reconcile', description: `Reconciled ${txIds.length} transactions` });
+    setView('dashboard');
   };
 
   const openNewTransaction = () => {
@@ -785,6 +844,17 @@ function App() {
         variant="outline"
         size="sm"
         effect="magnetic"
+        icon={FileSpreadsheet}
+        onClick={() => { setShowCsvImportModal(true); setMobileHeaderMenuOpen(false); }}
+        title="Import bank CSV statement"
+        className="max-lg:w-full max-lg:justify-start"
+      >
+        Import CSV
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        effect="magnetic"
         icon={Upload}
         onClick={() => { setShowImportModal(true); setMobileHeaderMenuOpen(false); }}
         title="Import Moneta JSON backup"
@@ -803,6 +873,32 @@ function App() {
       >
         <span className="lg:hidden">Backup</span>
         <span className="hidden lg:inline">Backup Data</span>
+      </Button>
+      {supportsFileSystemAccess() && (
+        <Button
+          variant="outline"
+          size="sm"
+          effect="magnetic"
+          icon={Download}
+          onClick={() => { void handleSaveToFile(); setMobileHeaderMenuOpen(false); }}
+          title="Save backup to a local file (auto-remembers location)"
+          className="max-lg:w-full max-lg:justify-start"
+        >
+          <span className="lg:hidden">Save to File</span>
+          <span className="hidden lg:inline">Save File</span>
+        </Button>
+      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        effect="magnetic"
+        icon={History}
+        onClick={() => { setAuditLogEntries(getAuditLog()); setShowAuditLog(true); setMobileHeaderMenuOpen(false); }}
+        title="Activity log"
+        className="max-lg:w-full max-lg:justify-start"
+      >
+        <span className="hidden lg:inline">Activity</span>
+        <span className="lg:hidden">Activity Log</span>
       </Button>
       <div className="animate-pulse max-lg:w-full flex justify-start lg:inline-flex">
         <PWAInstall />
@@ -868,7 +964,10 @@ function App() {
               { id: 'transactions', label: 'Transactions', short: 'Txns', icon: Receipt, count: filteredTransactions.length },
               { id: 'recurring', label: 'Recurring', short: 'Repeat', icon: Calendar, count: filteredMonthlyStatements.length },
               { id: 'rules', label: 'Rules', short: 'Rules', icon: Wand2, count: categoryRules.length },
-              { id: 'reports', label: 'Reports', short: 'Reports', icon: PieChart, count: null }
+              { id: 'reports', label: 'Reports', short: 'Reports', icon: PieChart, count: null },
+              { id: 'pnl', label: 'P&L', short: 'P&L', icon: Scale, count: null },
+              { id: 'tax', label: 'Tax', short: 'Tax', icon: FileText, count: null },
+              { id: 'reconcile', label: 'Reconcile', short: 'Recon', icon: ClipboardCheck, count: null },
             ].map(({ id, label, short, icon: TabIcon, count }) => (
             <button
                 key={id}
@@ -900,19 +999,28 @@ function App() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-24 md:pb-8 safe-bottom">
         {view === 'dashboard' && (
-          <Dashboard
-            personalAccounts={personalAccounts}
-            businessAccounts={businessAccounts}
-            getAccountBalance={getAccountBalance}
-            metrics={metrics}
-            saasMetrics={saasMetrics}
-            onAddTransaction={openNewTransaction}
-            onEditOpeningBalance={setOpeningBalanceAccount}
-          />
+          <div className="space-y-8">
+            <Dashboard
+              personalAccounts={personalAccounts}
+              businessAccounts={businessAccounts}
+              getAccountBalance={getAccountBalance}
+              metrics={metrics}
+              saasMetrics={saasMetrics}
+              onAddTransaction={openNewTransaction}
+              onEditOpeningBalance={setOpeningBalanceAccount}
+            />
+            <MonthlyBarChart transactions={filteredTransactions} monthsBack={6} />
+          </div>
         )}
 
         {view === 'transactions' && (
           <div className="space-y-6">
+            <SearchBar
+              transactions={filteredTransactions}
+              accounts={accounts}
+              categories={categories}
+              onSelectTransaction={handleEditTransaction}
+            />
             {/* Month/Year Navigation */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 -mx-1 px-1 sm:flex-1 sm:min-w-0">
@@ -1128,12 +1236,38 @@ function App() {
         )}
 
         {view === 'reports' && (
-          <Reports
+          <div className="space-y-8">
+            <Reports
+              transactions={filteredTransactions}
+              categories={categories}
+              metrics={metrics}
+              accounts={accounts}
+              journalEntries={journalForBusiness}
+            />
+            <MonthlyBarChart transactions={filteredTransactions} />
+          </div>
+        )}
+
+        {view === 'pnl' && (
+          <ProfitLossReport
             transactions={filteredTransactions}
             categories={categories}
-            metrics={metrics}
+          />
+        )}
+
+        {view === 'tax' && (
+          <TaxSummaryReport
+            transactions={filteredTransactions}
+            categories={categories}
+          />
+        )}
+
+        {view === 'reconcile' && (
+          <ReconciliationView
             accounts={accounts}
-            journalEntries={journalForBusiness}
+            transactions={filteredTransactions}
+            getAccountBalance={getAccountBalance}
+            onMarkReconciled={handleMarkReconciled}
           />
         )}
       </div>
@@ -1148,6 +1282,46 @@ function App() {
           onSave={editingTransaction ? updateTransaction : addTransaction}
           transaction={editingTransaction}
         />
+      )}
+
+      {showCsvImportModal && (
+        <CsvImportModal
+          accounts={accounts}
+          categories={categories}
+          categoryRules={categoryRules}
+          existingTransactions={transactions}
+          activeBusinessId={activeBusinessId}
+          onClose={() => setShowCsvImportModal(false)}
+          onImport={handleCsvImport}
+        />
+      )}
+
+      {showAuditLog && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4" onClick={() => setShowAuditLog(false)}>
+          <div className="bg-white dark:bg-neutral-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[94dvh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-700">
+              <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                <History className="w-5 h-5" /> Activity Log
+              </h2>
+              <button type="button" onClick={() => setShowAuditLog(false)} className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
+              {auditLogEntries.length === 0 ? (
+                <p className="text-center text-neutral-500 py-8">No activity recorded yet</p>
+              ) : auditLogEntries.map(entry => (
+                <div key={entry.id} className="flex items-start gap-3 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-800/50">
+                  <div className="w-2 h-2 mt-2 rounded-full bg-blue-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 break-words">{entry.description}</p>
+                    <p className="text-xs text-neutral-500 mt-1">{new Date(entry.timestamp).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {showImportModal && (

@@ -37,6 +37,10 @@ export interface Transaction {
   transferToAccountId?: string;
   /** IndexedDB attachment record ids (not included in JSON backup) */
   attachmentIds?: string[];
+  originalCurrency?: string;
+  originalAmount?: number;
+  exchangeRate?: number;
+  reconciled?: boolean;
 }
 
 /** Match description/notes (substring, case-insensitive); lower priority runs first */
@@ -179,4 +183,16 @@ export interface TransactionModalProps {
   onClose: () => void;
   onSave: (transaction: Omit<Transaction, 'id'> & { id?: string }) => void;
   transaction: Transaction | null;
+}
+
+export interface DateRange {
+  start: string;
+  end: string;
+}
+
+export interface ReconciliationSession {
+  accountId: string;
+  statementEndDate: string;
+  statementBalance: number;
+  clearedIds: string[];
 }
