@@ -9,6 +9,7 @@ import {
   deduplicateTransactions,
   type CsvColumnMapping,
 } from '../../lib/csvImport';
+import { parseOfxText, isOfxFile } from '../../lib/ofxImport';
 
 interface CsvImportModalProps {
   accounts: Account[];
@@ -67,6 +68,24 @@ export default function CsvImportModal({
     const reader = new FileReader();
     reader.onload = () => {
       const text = reader.result as string;
+
+      if (isOfxFile(file.name, text)) {
+        const ofxTxs = parseOfxText(text);
+        if (ofxTxs.length === 0) {
+          setError('No transactions found in OFX file.');
+          return;
+        }
+        const ofxHeaders = ['Date', 'Description', 'Amount'];
+        const ofxRows = ofxTxs.map(t => [t.date, t.description, String(t.amount)]);
+        setHeaders(ofxHeaders);
+        setRows(ofxRows);
+        setPreview(ofxRows.slice(0, 5));
+        setColumnRoles(['date', 'description', 'amount']);
+        setFileName(file.name);
+        setStep('mapping');
+        return;
+      }
+
       const result = parseCsvText(text);
       if (result.headers.length === 0 || result.rows.length === 0) {
         setError('Could not parse CSV. Make sure the file has a header row and at least one data row.');
@@ -186,12 +205,12 @@ export default function CsvImportModal({
             <label className="flex flex-col items-center justify-center border-2 border-dashed border-neutral-300 rounded-2xl p-10 cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition-colors">
               <Upload className="w-8 h-8 text-neutral-400 mb-3" />
               <span className="text-sm font-medium text-neutral-700">
-                {fileName || 'Choose a CSV file'}
+                {fileName || 'Choose a file'}
               </span>
-              <span className="text-xs text-neutral-400 mt-1">Bank statement exports (.csv)</span>
+              <span className="text-xs text-neutral-400 mt-1">CSV, OFX, or QFX</span>
               <input
                 type="file"
-                accept=".csv,text/csv"
+                accept=".csv,.ofx,.qfx,text/csv,application/x-ofx"
                 className="hidden"
                 onChange={handleFile}
               />
